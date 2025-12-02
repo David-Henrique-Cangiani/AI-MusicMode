@@ -7,6 +7,7 @@ export interface Song {
   coverUrl: string;
   audioUrl: string;
   liked?: boolean;
+  lyrics?: string;
 }
 
 export interface Playlist {
@@ -60,4 +61,14 @@ export interface PlayerState {
   repeat: RepeatMode;
   queue: Song[];
   queueIndex: number;
+}
+
+export interface LocalSong {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  filename: string;
+  coverFilename?: string;
+  lyricsFilename?: string;
 }

@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Library, PlusSquare, Heart, Music2 } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Music2, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockPlaylists } from '@/data/mockData';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 
 const navItems = [
   { icon: Home, label: 'Início', path: '/' },
@@ -17,6 +18,8 @@ const libraryItems = [
 ];
 
 export const Sidebar: React.FC = () => {
+  const { isAdmin } = useMusicLibrary();
+
   return (
     <aside className="fixed left-0 top-0 bottom-[90px] w-[280px] bg-sidebar flex flex-col z-40">
       {/* Logo */}
@@ -77,6 +80,24 @@ export const Sidebar: React.FC = () => {
               </NavLink>
             </li>
           ))}
+          {/* Admin Link */}
+          <li>
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
+                  isActive
+                    ? 'bg-sidebar-accent text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                  isAdmin && 'text-primary'
+                )
+              }
+            >
+              <Settings className="w-6 h-6" />
+              Admin
+            </NavLink>
+          </li>
         </ul>
       </nav>
 

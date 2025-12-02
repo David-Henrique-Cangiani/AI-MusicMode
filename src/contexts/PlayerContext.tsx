@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 import { Song, RepeatMode, PlayerState } from '@/types/music';
 
 interface PlayerContextType extends PlayerState {
-  play: (song?: Song) => void;
+  play: (song?: Song, songList?: Song[]) => void;
   pause: () => void;
   toggle: () => void;
   next: () => void;
@@ -79,9 +79,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [volume]);
 
-  const play = useCallback((song?: Song) => {
+  const play = useCallback((song?: Song, songList?: Song[]) => {
     if (song) {
       setCurrentSong(song);
+      // Se uma lista foi fornecida, use-a como queue
+      if (songList && songList.length > 0) {
+        setQueue(songList);
+        const index = songList.findIndex(s => s.id === song.id);
+        setQueueIndex(index >= 0 ? index : 0);
+      } else if (queue.length === 0) {
+        // Se não há queue, cria uma com apenas essa música
+        setQueue([song]);
+        setQueueIndex(0);
+      }
       if (audioRef.current) {
         audioRef.current.src = song.audioUrl;
         audioRef.current.play();
@@ -91,7 +101,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audioRef.current.play();
       setIsPlaying(true);
     }
-  }, [currentSong]);
+  }, [currentSong, queue]);
 
   const pause = useCallback(() => {
     if (audioRef.current) {
