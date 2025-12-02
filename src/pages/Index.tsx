@@ -3,10 +3,11 @@ import { SectionHeader } from '@/components/sections/SectionHeader';
 import { SongCard } from '@/components/cards/SongCard';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { ArtistCard } from '@/components/cards/ArtistCard';
-import { recentlyPlayed, featuredPlaylists, topArtists, mockSongs } from '@/data/mockData';
+import { featuredPlaylists, topArtists } from '@/data/mockData';
 import { Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 
 const getGreeting = (): string => {
   const hour = new Date().getHours();
@@ -17,6 +18,9 @@ const getGreeting = (): string => {
 
 const Index: React.FC = () => {
   const { playPlaylist } = usePlayer();
+  const { songs } = useMusicLibrary();
+
+  const recentlyPlayed = songs.slice(0, 6);
 
   return (
     <div className="min-h-full">
@@ -26,11 +30,11 @@ const Index: React.FC = () => {
         
         {/* Quick Access Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-          {recentlyPlayed.slice(0, 6).map((song) => (
+          {recentlyPlayed.map((song, index) => (
             <div
               key={song.id}
               className="group flex items-center gap-4 bg-card/50 hover:bg-card rounded-md overflow-hidden transition-all cursor-pointer"
-              onClick={() => playPlaylist([song], 0)}
+              onClick={() => playPlaylist(songs, index)}
             >
               <img
                 src={song.coverUrl}
@@ -68,8 +72,8 @@ const Index: React.FC = () => {
         <section className="animate-slide-up" style={{ animationDelay: '200ms' }}>
           <SectionHeader title="Tocados recentemente" showAll showAllLink="/recent" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {recentlyPlayed.map((song) => (
-              <SongCard key={song.id} song={song} />
+            {songs.slice(0, 6).map((song, index) => (
+              <SongCard key={song.id} song={song} index={index} songList={songs} />
             ))}
           </div>
         </section>
@@ -88,8 +92,8 @@ const Index: React.FC = () => {
         <section className="animate-slide-up" style={{ animationDelay: '400ms' }}>
           <SectionHeader title="Descobertas da semana" showAll showAllLink="/discover" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {mockSongs.slice(4).map((song) => (
-              <SongCard key={song.id} song={song} />
+            {songs.slice(4).map((song, index) => (
+              <SongCard key={song.id} song={song} index={index + 4} songList={songs} />
             ))}
           </div>
         </section>

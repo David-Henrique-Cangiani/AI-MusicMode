@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { SongCard } from '@/components/cards/SongCard';
-import { mockSongs, mockPlaylists, mockArtists } from '@/data/mockData';
+import { mockPlaylists, mockArtists } from '@/data/mockData';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { ArtistCard } from '@/components/cards/ArtistCard';
 import { SectionHeader } from '@/components/sections/SectionHeader';
@@ -20,8 +21,9 @@ const categories = [
 
 const Search: React.FC = () => {
   const [query, setQuery] = useState('');
+  const { songs } = useMusicLibrary();
 
-  const filteredSongs = mockSongs.filter(
+  const filteredSongs = songs.filter(
     (song) =>
       song.title.toLowerCase().includes(query.toLowerCase()) ||
       song.artist.toLowerCase().includes(query.toLowerCase())
@@ -59,8 +61,8 @@ const Search: React.FC = () => {
               <section className="animate-fade-in">
                 <SectionHeader title="Músicas" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                  {filteredSongs.map((song) => (
-                    <SongCard key={song.id} song={song} />
+                  {filteredSongs.map((song, index) => (
+                    <SongCard key={song.id} song={song} index={index} songList={filteredSongs} />
                   ))}
                 </div>
               </section>

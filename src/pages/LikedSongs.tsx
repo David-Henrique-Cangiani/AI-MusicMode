@@ -1,14 +1,15 @@
 import React from 'react';
 import { Play, Pause, Heart, Clock3 } from 'lucide-react';
-import { mockSongs } from '@/data/mockData';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { Button } from '@/components/ui/button';
 import { SongCard } from '@/components/cards/SongCard';
 
 const LikedSongs: React.FC = () => {
   const { currentSong, isPlaying, playPlaylist, pause, play } = usePlayer();
+  const { songs } = useMusicLibrary();
 
-  const likedSongs = mockSongs.filter((song) => song.liked);
+  const likedSongs = songs.filter((song) => song.liked);
   const isPlayingFromLiked = likedSongs.some((s) => s.id === currentSong?.id);
   const isCurrentlyPlaying = isPlayingFromLiked && isPlaying;
 
@@ -88,7 +89,7 @@ const LikedSongs: React.FC = () => {
         {/* Track List */}
         <div className="py-2">
           {likedSongs.map((song, index) => (
-            <SongCard key={song.id} song={song} index={index} showIndex compact />
+            <SongCard key={song.id} song={song} index={index} showIndex compact songList={likedSongs} />
           ))}
         </div>
 

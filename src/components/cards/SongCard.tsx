@@ -10,6 +10,7 @@ interface SongCardProps {
   index?: number;
   showIndex?: boolean;
   compact?: boolean;
+  songList?: Song[];
 }
 
 export const SongCard: React.FC<SongCardProps> = ({
@@ -17,6 +18,7 @@ export const SongCard: React.FC<SongCardProps> = ({
   index = 0,
   showIndex = false,
   compact = false,
+  songList,
 }) => {
   const { currentSong, isPlaying, play, pause, playPlaylist } = usePlayer();
   const isCurrentSong = currentSong?.id === song.id;
@@ -29,8 +31,10 @@ export const SongCard: React.FC<SongCardProps> = ({
       } else {
         play();
       }
+    } else if (songList && songList.length > 0) {
+      playPlaylist(songList, index);
     } else {
-      playPlaylist([song], 0);
+      play(song, [song]);
     }
   };
 
