@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Heart, Clock3 } from 'lucide-react';
+import { Play, Pause, Heart, Clock3, Loader2 } from 'lucide-react';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,15 @@ import { SongCard } from '@/components/cards/SongCard';
 
 const LikedSongs: React.FC = () => {
   const { currentSong, isPlaying, playPlaylist, pause, play } = usePlayer();
-  const { songs } = useMusicLibrary();
+  const { songs, loading } = useMusicLibrary();
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const likedSongs = songs.filter((song) => song.liked);
   const isPlayingFromLiked = likedSongs.some((s) => s.id === currentSong?.id);

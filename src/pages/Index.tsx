@@ -4,7 +4,7 @@ import { SongCard } from '@/components/cards/SongCard';
 import { PlaylistCard } from '@/components/cards/PlaylistCard';
 import { ArtistCard } from '@/components/cards/ArtistCard';
 import { featuredPlaylists, topArtists } from '@/data/mockData';
-import { Play } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
@@ -18,7 +18,15 @@ const getGreeting = (): string => {
 
 const Index: React.FC = () => {
   const { playPlaylist } = usePlayer();
-  const { songs } = useMusicLibrary();
+  const { songs, loading } = useMusicLibrary();
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const recentlyPlayed = songs.slice(0, 6);
 
