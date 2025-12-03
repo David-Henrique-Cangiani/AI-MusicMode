@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Plus, Trash2, Music, LogOut, FileText } from 'lucide-react';
+import { Lock, Plus, Trash2, Music, LogOut, FileText, Upload, Image, FileAudio } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Admin() {
@@ -20,6 +20,12 @@ export default function Admin() {
   const [coverUrl, setCoverUrl] = useState('');
   const [lyrics, setLyrics] = useState('');
   const [duration, setDuration] = useState('180');
+  const [audioFileName, setAudioFileName] = useState('');
+  const [coverFileName, setCoverFileName] = useState('');
+
+  // File input refs
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Lyrics edit state
   const [editingLyricsId, setEditingLyricsId] = useState<string | null>(null);
@@ -32,6 +38,39 @@ export default function Admin() {
       setPassword('');
     } else {
       toast.error('Senha incorreta!');
+    }
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      setAudioFileName(file.name);
+      
+      // Try to extract title from filename
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      if (!title) {
+        setTitle(nameWithoutExt);
+      }
+      
+      // Get audio duration
+      const audio = new Audio(url);
+      audio.addEventListener('loadedmetadata', () => {
+        setDuration(Math.floor(audio.duration).toString());
+      });
+      
+      toast.success('Áudio carregado!');
+    }
+  };
+
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCoverUrl(url);
+      setCoverFileName(file.name);
+      toast.success('Capa carregada!');
     }
   };
 
@@ -63,6 +102,8 @@ export default function Admin() {
     setCoverUrl('');
     setLyrics('');
     setDuration('180');
+    setAudioFileName('');
+    setCoverFileName('');
   };
 
   const handleRemoveSong = (id: string, songTitle: string) => {
@@ -176,25 +217,54 @@ export default function Admin() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="audioUrl">URL do Áudio *</Label>
-              <Input
-                id="audioUrl"
-                value={audioUrl}
-                onChange={(e) => setAudioUrl(e.target.value)}
-                placeholder="/music/minha-musica.mp3 ou URL externa"
+              <Label>Arquivo de Áudio *</Label>
+              <input
+                ref={audioInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={handleAudioUpload}
+                className="hidden"
               />
-              <p className="text-xs text-muted-foreground">
-                Coloque seus arquivos MP3 na pasta public/music/ e use: /music/nome-do-arquivo.mp3
-              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => audioInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <FileAudio className="w-4 h-4 mr-2" />
+                  {audioFileName || 'Selecionar Áudio'}
+                </Button>
+                {audioFileName && (
+                  <div className="flex items-center px-3 bg-primary/20 rounded-md text-sm text-primary">
+                    ✓ Carregado
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="coverUrl">URL da Capa</Label>
-              <Input
-                id="coverUrl"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                placeholder="/music/covers/capa.jpg ou URL externa"
+              <Label>Capa (opcional)</Label>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverUpload}
+                className="hidden"
               />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <Image className="w-4 h-4 mr-2" />
+                  {coverFileName || 'Selecionar Capa'}
+                </Button>
+                {coverUrl && (
+                  <img src={coverUrl} alt="Preview" className="w-10 h-10 rounded object-cover" />
+                )}
+              </div>
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="lyrics">Letra da Música</Label>
@@ -299,13 +369,16 @@ export default function Admin() {
       {/* Instructions */}
       <Card className="bg-primary/10 border-primary/20">
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-2">📁 Como adicionar músicas locais:</h3>
+          <h3 className="font-semibold mb-2">📁 Como adicionar músicas:</h3>
           <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-            <li>Crie a pasta <code className="bg-secondary px-1 rounded">public/music/</code></li>
-            <li>Coloque seus arquivos MP3/MP4 nessa pasta</li>
-            <li>Para capas, crie <code className="bg-secondary px-1 rounded">public/music/covers/</code></li>
-            <li>Use o caminho <code className="bg-secondary px-1 rounded">/music/nome.mp3</code> no formulário</li>
+            <li>Clique em "Selecionar Áudio" e escolha seu arquivo MP3</li>
+            <li>Preencha o título e artista</li>
+            <li>Opcionalmente, adicione uma capa e letra</li>
+            <li>Clique em "Adicionar Música"</li>
           </ol>
+          <p className="text-xs text-muted-foreground mt-3">
+            ⚠️ As músicas ficam salvas no navegador (localStorage). Se limpar os dados do navegador, precisará adicionar novamente.
+          </p>
         </CardContent>
       </Card>
     </div>
