@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { SongCard } from '@/components/cards/SongCard';
 import { mockPlaylists, mockArtists } from '@/data/mockData';
@@ -21,7 +21,15 @@ const categories = [
 
 const Search: React.FC = () => {
   const [query, setQuery] = useState('');
-  const { songs } = useMusicLibrary();
+  const { songs, loading } = useMusicLibrary();
+
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const filteredSongs = songs.filter(
     (song) =>
