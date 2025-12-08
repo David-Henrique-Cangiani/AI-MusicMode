@@ -210,7 +210,7 @@ export default function Admin() {
               </Button>
             </form>
             <p className="text-xs text-muted-foreground text-center mt-4">
-              Senha padrão: admin123
+              Senha padrão: ********************
             </p>
           </CardContent>
         </Card>
