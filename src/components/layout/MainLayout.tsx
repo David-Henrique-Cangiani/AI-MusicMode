@@ -8,8 +8,9 @@ export const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className="ml-[280px] pb-[90px]">
-        <ScrollArea className="h-[calc(100vh-90px)]">
+      {/* Desktop: margin-left for sidebar, Mobile: margin-top for header */}
+      <main className="md:ml-[280px] pb-[140px] md:pb-[90px] pt-14 md:pt-0">
+        <ScrollArea className="h-[calc(100vh-140px)] md:h-[calc(100vh-90px)]">
           <Outlet />
         </ScrollArea>
       </main>

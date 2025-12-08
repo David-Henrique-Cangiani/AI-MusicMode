@@ -61,9 +61,9 @@ export const MusicPlayer: React.FC = () => {
 
   if (!currentSong) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 h-[90px] bg-background/95 backdrop-blur-xl border-t border-border z-50">
+      <div className="fixed bottom-0 left-0 right-0 h-[140px] md:h-[90px] bg-background/95 backdrop-blur-xl border-t border-border z-50">
         <div className="flex items-center justify-center h-full text-muted-foreground">
-          <p>Selecione uma música para começar</p>
+          <p className="text-sm">Selecione uma música para começar</p>
         </div>
       </div>
     );
@@ -71,7 +71,71 @@ export const MusicPlayer: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 h-[90px] bg-background/95 backdrop-blur-xl border-t border-border z-50">
+      {/* Mobile Player */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border z-50 md:hidden">
+        <div className="flex flex-col p-3 gap-2">
+          {/* Song Info & Controls Row */}
+          <div className="flex items-center gap-3">
+            <img
+              src={currentSong.coverUrl}
+              alt={currentSong.title}
+              className="w-12 h-12 rounded-md object-cover shadow-lg flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{currentSong.title}</p>
+              <p className="text-xs text-muted-foreground truncate">{currentSong.artist}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="icon"
+                size="iconSm"
+                onClick={() => toggleLike(currentSong.id)}
+                className={cn(currentSong.liked && 'text-primary')}
+              >
+                <Heart className={cn('w-5 h-5', currentSong.liked && 'fill-current')} />
+              </Button>
+              <Button variant="player" size="iconSm" onClick={previous}>
+                <SkipBack className="w-5 h-5 fill-current" />
+              </Button>
+              <Button
+                variant="playerPrimary"
+                size="icon"
+                onClick={toggle}
+                className="shadow-lg"
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5 fill-current" />
+                ) : (
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                )}
+              </Button>
+              <Button variant="player" size="iconSm" onClick={next}>
+                <SkipForward className="w-5 h-5 fill-current" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground w-8 text-right">
+              {formatTime(progress)}
+            </span>
+            <Slider
+              value={[progress]}
+              max={duration || 100}
+              step={1}
+              onValueChange={handleProgressChange}
+              className="flex-1"
+            />
+            <span className="text-[10px] text-muted-foreground w-8">
+              {formatTime(duration)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Player */}
+      <div className="fixed bottom-0 left-0 right-0 h-[90px] bg-background/95 backdrop-blur-xl border-t border-border z-50 hidden md:block">
         <div className="flex items-center justify-between h-full px-4 max-w-screen-2xl mx-auto">
           {/* Song Info */}
           <div className="flex items-center gap-4 w-[30%] min-w-[180px]">
