@@ -12,6 +12,7 @@ import Library from "./pages/Library";
 import Playlist from "./pages/Playlist";
 import LikedSongs from "./pages/LikedSongs";
 import Admin from "./pages/Admin";
+import CreatePlaylist from "./pages/CreatePlaylist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
                 <Route path="/playlist/:id" element={<Playlist />} />
                 <Route path="/liked" element={<LikedSongs />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/create-playlist" element={<CreatePlaylist />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
