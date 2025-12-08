@@ -1,10 +1,15 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, Search, Library, PlusSquare, Heart, Music2, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, Search, Library, PlusSquare, Heart, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockPlaylists } from '@/data/mockData';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navItems = [
   { icon: Home, label: 'Início', path: '/' },
@@ -18,18 +23,27 @@ const libraryItems = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const { isAdmin } = useMusicLibrary();
+  const navigate = useNavigate();
 
   return (
     <aside className="fixed left-0 top-0 bottom-[90px] w-[280px] bg-sidebar flex flex-col z-40">
-      {/* Logo */}
+      {/* Logo with hidden Admin access */}
       <div className="p-6">
-        <NavLink to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Music2 className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="text-2xl font-bold text-foreground">SoundWave</span>
-        </NavLink>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 group outline-none">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
+                <Music2 className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">AI-MusicMode</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={() => navigate('/admin')}>
+              Painel Admin
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Main Navigation */}
@@ -80,24 +94,6 @@ export const Sidebar: React.FC = () => {
               </NavLink>
             </li>
           ))}
-          {/* Admin Link */}
-          <li>
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
-                  isActive
-                    ? 'bg-sidebar-accent text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                  isAdmin && 'text-primary'
-                )
-              }
-            >
-              <Settings className="w-6 h-6" />
-              Admin
-            </NavLink>
-          </li>
         </ul>
       </nav>
 

@@ -50,7 +50,7 @@ const Playlist: React.FC = () => {
       <div
         className="relative px-8 pt-16 pb-8"
         style={{
-          background: `linear-gradient(180deg, hsl(141, 40%, 25%) 0%, hsl(var(--background)) 100%)`,
+          background: `linear-gradient(180deg, hsl(270, 40%, 25%) 0%, hsl(var(--background)) 100%)`,
         }}
       >
         <div className="flex items-end gap-6">
@@ -66,7 +66,7 @@ const Playlist: React.FC = () => {
               <p className="text-muted-foreground mt-2">{playlist.description}</p>
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-              <span className="font-semibold text-foreground">SoundWave</span>
+              <span className="font-semibold text-foreground">AI-MusicMode</span>
               <span>•</span>
               <span>{playlist.songs.length} músicas,</span>
               <span>{formatTotalDuration(totalDuration)}</span>
