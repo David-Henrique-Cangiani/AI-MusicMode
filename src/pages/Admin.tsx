@@ -1,27 +1,30 @@
 import React, { useState, useRef } from 'react';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Plus, Trash2, Music, LogOut, FileText, Upload, Image, FileAudio } from 'lucide-react';
+import { Lock, Plus, Trash2, Music, LogOut, FileText, Image, FileAudio, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Admin() {
   const { songs, addSong, removeSong, updateSong, isAdmin, login, logout } = useMusicLibrary();
   const [password, setPassword] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [album, setAlbum] = useState('');
-  const [audioUrl, setAudioUrl] = useState('');
-  const [coverUrl, setCoverUrl] = useState('');
   const [lyrics, setLyrics] = useState('');
   const [duration, setDuration] = useState('180');
   const [audioFileName, setAudioFileName] = useState('');
   const [coverFileName, setCoverFileName] = useState('');
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState('');
 
   // File input refs
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -44,8 +47,7 @@ export default function Admin() {
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
+      setAudioFile(file);
       setAudioFileName(file.name);
       
       // Try to extract title from filename
@@ -55,55 +57,115 @@ export default function Admin() {
       }
       
       // Get audio duration
+      const url = URL.createObjectURL(file);
       const audio = new Audio(url);
       audio.addEventListener('loadedmetadata', () => {
         setDuration(Math.floor(audio.duration).toString());
+        URL.revokeObjectURL(url);
       });
       
-      toast.success('Áudio carregado!');
+      toast.success('Áudio selecionado!');
     }
   };
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setCoverUrl(url);
+      setCoverFile(file);
       setCoverFileName(file.name);
-      toast.success('Capa carregada!');
+      
+      // Create preview
+      const url = URL.createObjectURL(file);
+      setCoverPreview(url);
+      
+      toast.success('Capa selecionada!');
     }
   };
 
-  const handleAddSong = (e: React.FormEvent) => {
+  const uploadToStorage = async (file: File, bucket: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error(`Error uploading to ${bucket}:`, error);
+      return null;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  };
+
+  const handleAddSong = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !artist || !audioUrl) {
-      toast.error('Preencha os campos obrigatórios!');
+    if (!title || !artist || !audioFile) {
+      toast.error('Preencha os campos obrigatórios e selecione um arquivo de áudio!');
       return;
     }
 
-    addSong({
-      title,
-      artist,
-      album: album || 'Single',
-      audioUrl,
-      coverUrl: coverUrl || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
-      duration: parseInt(duration) || 180,
-      lyrics: lyrics || undefined,
-    });
+    setIsUploading(true);
 
-    toast.success('Música adicionada com sucesso!');
-    
-    // Reset form
-    setTitle('');
-    setArtist('');
-    setAlbum('');
-    setAudioUrl('');
-    setCoverUrl('');
-    setLyrics('');
-    setDuration('180');
-    setAudioFileName('');
-    setCoverFileName('');
+    try {
+      // Upload audio file
+      const audioUrl = await uploadToStorage(audioFile, 'audio');
+      if (!audioUrl) {
+        toast.error('Erro ao fazer upload do áudio!');
+        setIsUploading(false);
+        return;
+      }
+
+      // Upload cover if provided
+      let coverUrl = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop';
+      if (coverFile) {
+        const uploadedCoverUrl = await uploadToStorage(coverFile, 'covers');
+        if (uploadedCoverUrl) {
+          coverUrl = uploadedCoverUrl;
+        }
+      }
+
+      await addSong({
+        title,
+        artist,
+        album: album || 'Single',
+        audioUrl,
+        coverUrl,
+        duration: parseInt(duration) || 180,
+        lyrics: lyrics || undefined,
+      });
+
+      toast.success('Música adicionada com sucesso!');
+      
+      // Reset form
+      setTitle('');
+      setArtist('');
+      setAlbum('');
+      setLyrics('');
+      setDuration('180');
+      setAudioFileName('');
+      setCoverFileName('');
+      setAudioFile(null);
+      setCoverFile(null);
+      if (coverPreview) {
+        URL.revokeObjectURL(coverPreview);
+        setCoverPreview('');
+      }
+    } catch (error) {
+      console.error('Error adding song:', error);
+      toast.error('Erro ao adicionar música!');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleRemoveSong = (id: string, songTitle: string) => {
@@ -186,6 +248,7 @@ export default function Admin() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Nome da música"
+                disabled={isUploading}
               />
             </div>
             <div className="space-y-2">
@@ -195,6 +258,7 @@ export default function Admin() {
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
                 placeholder="Nome do artista"
+                disabled={isUploading}
               />
             </div>
             <div className="space-y-2">
@@ -204,6 +268,7 @@ export default function Admin() {
                 value={album}
                 onChange={(e) => setAlbum(e.target.value)}
                 placeholder="Nome do álbum"
+                disabled={isUploading}
               />
             </div>
             <div className="space-y-2">
@@ -214,6 +279,7 @@ export default function Admin() {
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="180"
+                disabled={isUploading}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -224,6 +290,7 @@ export default function Admin() {
                 accept="audio/*"
                 onChange={handleAudioUpload}
                 className="hidden"
+                disabled={isUploading}
               />
               <div className="flex gap-2">
                 <Button
@@ -231,13 +298,14 @@ export default function Admin() {
                   variant="outline"
                   onClick={() => audioInputRef.current?.click()}
                   className="flex-1"
+                  disabled={isUploading}
                 >
                   <FileAudio className="w-4 h-4 mr-2" />
                   {audioFileName || 'Selecionar Áudio'}
                 </Button>
                 {audioFileName && (
                   <div className="flex items-center px-3 bg-primary/20 rounded-md text-sm text-primary">
-                    ✓ Carregado
+                    ✓ Selecionado
                   </div>
                 )}
               </div>
@@ -250,6 +318,7 @@ export default function Admin() {
                 accept="image/*"
                 onChange={handleCoverUpload}
                 className="hidden"
+                disabled={isUploading}
               />
               <div className="flex gap-2">
                 <Button
@@ -257,12 +326,13 @@ export default function Admin() {
                   variant="outline"
                   onClick={() => coverInputRef.current?.click()}
                   className="flex-1"
+                  disabled={isUploading}
                 >
                   <Image className="w-4 h-4 mr-2" />
                   {coverFileName || 'Selecionar Capa'}
                 </Button>
-                {coverUrl && (
-                  <img src={coverUrl} alt="Preview" className="w-10 h-10 rounded object-cover" />
+                {coverPreview && (
+                  <img src={coverPreview} alt="Preview" className="w-10 h-10 rounded object-cover" />
                 )}
               </div>
             </div>
@@ -274,12 +344,22 @@ export default function Admin() {
                 onChange={(e) => setLyrics(e.target.value)}
                 placeholder="Cole a letra aqui..."
                 rows={4}
+                disabled={isUploading}
               />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit" className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Música
+              <Button type="submit" className="w-full" disabled={isUploading}>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Fazendo upload...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Música
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -377,7 +457,7 @@ export default function Admin() {
             <li>Clique em "Adicionar Música"</li>
           </ol>
           <p className="text-xs text-muted-foreground mt-3">
-            ⚠️ As músicas ficam salvas no navegador (localStorage). Se limpar os dados do navegador, precisará adicionar novamente.
+            ✅ As músicas são salvas na nuvem e ficam disponíveis para todos os usuários!
           </p>
         </CardContent>
       </Card>
