@@ -1,15 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, Library, PlusSquare, Heart, Music2 } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Music2, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockPlaylists } from '@/data/mockData';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const navItems = [
   { icon: Home, label: 'Início', path: '/' },
@@ -24,26 +20,41 @@ const libraryItems = [
 
 export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  return (
-    <aside className="fixed left-0 top-0 bottom-[90px] w-[280px] bg-sidebar flex flex-col z-40">
-      {/* Logo with hidden Admin access */}
+  const handleLogoClick = () => {
+    clickCountRef.current += 1;
+    
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+    
+    if (clickCountRef.current >= 3) {
+      clickCountRef.current = 0;
+      navigate('/admin');
+      setIsOpen(false);
+    } else {
+      clickTimerRef.current = setTimeout(() => {
+        clickCountRef.current = 0;
+      }, 500);
+    }
+  };
+
+  const SidebarContent = () => (
+    <>
+      {/* Logo with triple-click Admin access */}
       <div className="p-6">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 group outline-none">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
-                <Music2 className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-bold text-foreground">AI-MusicMode</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem onClick={() => navigate('/admin')}>
-              Painel Admin
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <button 
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 group outline-none"
+        >
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
+            <Music2 className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <span className="text-2xl font-bold text-foreground">AI-MusicMode</span>
+        </button>
       </div>
 
       {/* Main Navigation */}
@@ -53,6 +64,7 @@ export const Sidebar: React.FC = () => {
             <li key={item.path}>
               <NavLink
                 to={item.path}
+                onClick={() => setIsOpen(false)}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
@@ -80,6 +92,7 @@ export const Sidebar: React.FC = () => {
             <li key={item.path}>
               <NavLink
                 to={item.path}
+                onClick={() => setIsOpen(false)}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
@@ -107,6 +120,7 @@ export const Sidebar: React.FC = () => {
             <li key={playlist.id}>
               <NavLink
                 to={`/playlist/${playlist.id}`}
+                onClick={() => setIsOpen(false)}
                 className={({ isActive }) =>
                   cn(
                     'block px-4 py-2 rounded-lg text-sm transition-all truncate',
@@ -122,6 +136,36 @@ export const Sidebar: React.FC = () => {
           ))}
         </ul>
       </ScrollArea>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="fixed left-0 top-0 bottom-[90px] w-[280px] bg-sidebar flex-col z-40 hidden md:flex">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Header */}
+      <header className="fixed top-0 left-0 right-0 h-14 bg-sidebar/95 backdrop-blur-xl border-b border-border z-50 flex items-center px-4 md:hidden">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="mr-3">
+              <Menu className="w-6 h-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[280px] p-0 bg-sidebar border-border">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+        
+        <button onClick={handleLogoClick} className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+            <Music2 className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold text-foreground">AI-MusicMode</span>
+        </button>
+      </header>
+    </>
   );
 };
