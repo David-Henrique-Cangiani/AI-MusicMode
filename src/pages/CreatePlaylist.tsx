@@ -4,14 +4,18 @@ import { Music, ImagePlus, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreatePlaylist: React.FC = () => {
   const navigate = useNavigate();
+  const { createPlaylist } = useMusicLibrary();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -26,22 +30,46 @@ const CreatePlaylist: React.FC = () => {
     e.preventDefault();
     
     if (!name.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Nome da playlist é obrigatório',
-        variant: 'destructive',
-      });
+      toast.error('Nome da playlist é obrigatório');
       return;
     }
 
-    // For now, just show a success message
-    // In the future, this will save to the database
-    toast({
-      title: 'Playlist criada!',
-      description: `"${name}" foi criada com sucesso.`,
-    });
-    
-    navigate('/library');
+    setIsSubmitting(true);
+
+    try {
+      let coverUrl: string | undefined;
+
+      // Upload cover if provided
+      if (coverFile) {
+        const fileExt = coverFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('covers')
+          .upload(fileName, coverFile);
+
+        if (uploadError) {
+          console.error('Error uploading cover:', uploadError);
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('covers')
+            .getPublicUrl(fileName);
+          coverUrl = urlData.publicUrl;
+        }
+      }
+
+      const playlistId = await createPlaylist(name, description || undefined, coverUrl);
+      
+      if (playlistId) {
+        toast.success(`"${name}" foi criada com sucesso!`);
+        navigate('/library');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erro ao criar playlist');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,7 +79,7 @@ const CreatePlaylist: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Cover Upload */}
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
             <label className="cursor-pointer group">
               <div className="w-48 h-48 bg-card rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-primary transition-colors overflow-hidden">
                 {coverPreview ? (
@@ -71,7 +99,7 @@ const CreatePlaylist: React.FC = () => {
               />
             </label>
 
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 w-full">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   Nome da Playlist
@@ -113,12 +141,13 @@ const CreatePlaylist: React.FC = () => {
               type="button"
               variant="ghost"
               onClick={() => navigate(-1)}
+              disabled={isSubmitting}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="gap-2">
+            <Button type="submit" className="gap-2" disabled={isSubmitting}>
               <Save className="w-4 h-4" />
-              Criar Playlist
+              {isSubmitting ? 'Criando...' : 'Criar Playlist'}
             </Button>
           </div>
         </form>

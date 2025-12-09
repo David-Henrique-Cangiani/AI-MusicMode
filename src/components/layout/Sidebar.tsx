@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, Library, PlusSquare, Heart, Music2, Menu, X } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, Music2, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockPlaylists } from '@/data/mockData';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -19,6 +19,7 @@ const libraryItems = [
 
 export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
+  const { playlists } = useMusicLibrary();
   const [isOpen, setIsOpen] = useState(false);
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -115,7 +116,7 @@ export const Sidebar: React.FC = () => {
       {/* Playlists */}
       <ScrollArea className="flex-1 px-3">
         <ul className="space-y-1 pb-4">
-          {mockPlaylists.map((playlist) => (
+          {playlists.map((playlist) => (
             <li key={playlist.id}>
               <NavLink
                 to={`/playlist/${playlist.id}`}
@@ -133,6 +134,11 @@ export const Sidebar: React.FC = () => {
               </NavLink>
             </li>
           ))}
+          {playlists.length === 0 && (
+            <li className="px-4 py-2 text-sm text-muted-foreground">
+              Nenhuma playlist criada
+            </li>
+          )}
         </ul>
       </ScrollArea>
     </>

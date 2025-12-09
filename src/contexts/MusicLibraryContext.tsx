@@ -1,15 +1,30 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Song } from '@/types/music';
+import { Song, Playlist } from '@/types/music';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export interface PlaylistData {
+  id: string;
+  name: string;
+  description?: string;
+  coverUrl?: string;
+  createdAt: Date;
+}
+
 interface MusicLibraryContextType {
   songs: Song[];
+  playlists: PlaylistData[];
   loading: boolean;
   addSong: (song: Omit<Song, 'id'>) => Promise<void>;
   removeSong: (id: string) => Promise<void>;
   updateSong: (id: string, updates: Partial<Song>) => Promise<void>;
   refreshSongs: () => Promise<void>;
+  createPlaylist: (name: string, description?: string, coverUrl?: string) => Promise<string | null>;
+  deletePlaylist: (id: string) => Promise<void>;
+  addSongToPlaylist: (playlistId: string, songId: string) => Promise<void>;
+  removeSongFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
+  getPlaylistSongs: (playlistId: string) => Promise<Song[]>;
+  refreshPlaylists: () => Promise<void>;
   isAdmin: boolean;
   login: (password: string) => boolean;
   logout: () => void;
@@ -30,6 +45,7 @@ export const useMusicLibrary = () => {
 
 export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [songs, setSongs] = useState<Song[]>([]);
+  const [playlists, setPlaylists] = useState<PlaylistData[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -70,9 +86,36 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
+  const fetchPlaylists = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('playlists')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching playlists:', error);
+        return;
+      }
+
+      const mappedPlaylists: PlaylistData[] = (data || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || undefined,
+        coverUrl: p.cover_url || undefined,
+        createdAt: new Date(p.created_at),
+      }));
+
+      setPlaylists(mappedPlaylists);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSongs();
-  }, [fetchSongs]);
+    fetchPlaylists();
+  }, [fetchSongs, fetchPlaylists]);
 
   const addSong = useCallback(async (song: Omit<Song, 'id'>) => {
     try {
@@ -163,15 +206,142 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
     localStorage.removeItem(ADMIN_KEY);
   }, []);
 
+  const createPlaylist = useCallback(async (name: string, description?: string, coverUrl?: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('playlists')
+        .insert({
+          name,
+          description: description || null,
+          cover_url: coverUrl || null,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating playlist:', error);
+        toast.error('Erro ao criar playlist');
+        return null;
+      }
+
+      await fetchPlaylists();
+      return data.id;
+    } catch (error) {
+      console.error('Error:', error);
+      return null;
+    }
+  }, [fetchPlaylists]);
+
+  const deletePlaylist = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlists')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting playlist:', error);
+        toast.error('Erro ao excluir playlist');
+        return;
+      }
+
+      await fetchPlaylists();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, [fetchPlaylists]);
+
+  const addSongToPlaylist = useCallback(async (playlistId: string, songId: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlist_songs')
+        .insert({
+          playlist_id: playlistId,
+          song_id: songId,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.info('Música já está na playlist');
+          return;
+        }
+        console.error('Error adding song to playlist:', error);
+        toast.error('Erro ao adicionar música à playlist');
+        return;
+      }
+
+      toast.success('Música adicionada à playlist');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, []);
+
+  const removeSongFromPlaylist = useCallback(async (playlistId: string, songId: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlist_songs')
+        .delete()
+        .eq('playlist_id', playlistId)
+        .eq('song_id', songId);
+
+      if (error) {
+        console.error('Error removing song from playlist:', error);
+        toast.error('Erro ao remover música da playlist');
+        return;
+      }
+
+      toast.success('Música removida da playlist');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, []);
+
+  const getPlaylistSongs = useCallback(async (playlistId: string): Promise<Song[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('playlist_songs')
+        .select('song_id, songs(*)')
+        .eq('playlist_id', playlistId)
+        .order('added_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching playlist songs:', error);
+        return [];
+      }
+
+      return (data || []).map((item: any) => ({
+        id: item.songs.id,
+        title: item.songs.title,
+        artist: item.songs.artist,
+        album: item.songs.album,
+        duration: item.songs.duration,
+        coverUrl: item.songs.cover_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
+        audioUrl: item.songs.audio_url,
+        liked: item.songs.liked || false,
+        lyrics: item.songs.lyrics || undefined,
+      }));
+    } catch (error) {
+      console.error('Error:', error);
+      return [];
+    }
+  }, []);
+
   return (
     <MusicLibraryContext.Provider
       value={{
         songs,
+        playlists,
         loading,
         addSong,
         removeSong,
         updateSong,
         refreshSongs: fetchSongs,
+        createPlaylist,
+        deletePlaylist,
+        addSongToPlaylist,
+        removeSongFromPlaylist,
+        getPlaylistSongs,
+        refreshPlaylists: fetchPlaylists,
         isAdmin,
         login,
         logout,
