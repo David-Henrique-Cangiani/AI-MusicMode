@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Play, Pause, Heart, MoreHorizontal, ListPlus, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { Play, Pause, Heart, MoreHorizontal, ListPlus } from 'lucide-react';
 import { Song } from '@/types/music';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
@@ -16,7 +16,6 @@ import {
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { mockPlaylists } from '@/data/mockData';
 
 interface SongCardProps {
   song: Song;
@@ -34,7 +33,7 @@ export const SongCard: React.FC<SongCardProps> = ({
   songList,
 }) => {
   const { currentSong, isPlaying, play, pause, playPlaylist } = usePlayer();
-  const { updateSong } = useMusicLibrary();
+  const { updateSong, playlists, addSongToPlaylist } = useMusicLibrary();
   const isCurrentSong = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrentSong && isPlaying;
 
@@ -59,9 +58,8 @@ export const SongCard: React.FC<SongCardProps> = ({
     toast.success(song.liked ? 'Removido das curtidas' : 'Adicionado às curtidas');
   };
 
-  const handleAddToPlaylist = (playlistId: string, playlistName: string) => {
-    // TODO: Implementar adição real ao banco quando playlists estiverem no Supabase
-    toast.success(`"${song.title}" adicionada à playlist "${playlistName}"`);
+  const handleAddToPlaylist = async (playlistId: string, playlistName: string) => {
+    await addSongToPlaylist(playlistId, song.id);
   };
 
   const formatDuration = (seconds: number): string => {
@@ -136,17 +134,23 @@ export const SongCard: React.FC<SongCardProps> = ({
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="bg-popover border-border">
-                  {mockPlaylists.map((playlist) => (
-                    <DropdownMenuItem 
-                      key={playlist.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToPlaylist(playlist.id, playlist.name);
-                      }}
-                    >
-                      {playlist.name}
+                  {playlists.length === 0 ? (
+                    <DropdownMenuItem disabled>
+                      Nenhuma playlist criada
                     </DropdownMenuItem>
-                  ))}
+                  ) : (
+                    playlists.map((playlist) => (
+                      <DropdownMenuItem 
+                        key={playlist.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToPlaylist(playlist.id, playlist.name);
+                        }}
+                      >
+                        {playlist.name}
+                      </DropdownMenuItem>
+                    ))
+                  )}
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
@@ -213,17 +217,23 @@ export const SongCard: React.FC<SongCardProps> = ({
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="bg-popover border-border">
-                  {mockPlaylists.map((playlist) => (
-                    <DropdownMenuItem 
-                      key={playlist.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToPlaylist(playlist.id, playlist.name);
-                      }}
-                    >
-                      {playlist.name}
+                  {playlists.length === 0 ? (
+                    <DropdownMenuItem disabled>
+                      Nenhuma playlist criada
                     </DropdownMenuItem>
-                  ))}
+                  ) : (
+                    playlists.map((playlist) => (
+                      <DropdownMenuItem 
+                        key={playlist.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToPlaylist(playlist.id, playlist.name);
+                        }}
+                      >
+                        {playlist.name}
+                      </DropdownMenuItem>
+                    ))
+                  )}
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>

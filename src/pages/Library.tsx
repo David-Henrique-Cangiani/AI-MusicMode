@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { PlaylistCard } from '@/components/cards/PlaylistCard';
-import { ArtistCard } from '@/components/cards/ArtistCard';
-import { mockPlaylists, mockArtists } from '@/data/mockData';
+import { useNavigate } from 'react-router-dom';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Grid, List, Plus } from 'lucide-react';
+import { Grid, List, Plus, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Library: React.FC = () => {
+  const navigate = useNavigate();
+  const { playlists } = useMusicLibrary();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   return (
@@ -32,18 +33,6 @@ const Library: React.FC = () => {
           >
             Playlists
           </TabsTrigger>
-          <TabsTrigger
-            value="artists"
-            className="data-[state=active]:bg-foreground data-[state=active]:text-background rounded-full px-4"
-          >
-            Artistas
-          </TabsTrigger>
-          <TabsTrigger
-            value="albums"
-            className="data-[state=active]:bg-foreground data-[state=active]:text-background rounded-full px-4"
-          >
-            Álbuns
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="playlists" className="animate-fade-in">
@@ -54,6 +43,7 @@ const Library: React.FC = () => {
           )}>
             {/* Create Playlist Card */}
             <div
+              onClick={() => navigate('/create-playlist')}
               className={cn(
                 'group cursor-pointer',
                 viewMode === 'grid'
@@ -78,69 +68,49 @@ const Library: React.FC = () => {
               )}
             </div>
 
-            {mockPlaylists.map((playlist) =>
+            {playlists.map((playlist) =>
               viewMode === 'grid' ? (
-                <PlaylistCard key={playlist.id} playlist={playlist} />
+                <div
+                  key={playlist.id}
+                  onClick={() => navigate(`/playlist/${playlist.id}`)}
+                  className="group bg-card hover:bg-card-hover rounded-lg p-4 transition-all cursor-pointer"
+                >
+                  <div className="w-full aspect-square rounded-md bg-muted flex items-center justify-center mb-4 overflow-hidden">
+                    {playlist.coverUrl ? (
+                      <img src={playlist.coverUrl} alt={playlist.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Music className="w-12 h-12 text-muted-foreground" />
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-foreground truncate">{playlist.name}</h3>
+                  <p className="text-sm text-muted-foreground truncate">Playlist</p>
+                </div>
               ) : (
                 <div
                   key={playlist.id}
+                  onClick={() => navigate(`/playlist/${playlist.id}`)}
                   className="flex items-center gap-4 p-3 bg-card hover:bg-card-hover rounded-lg transition-all cursor-pointer"
                 >
-                  <img
-                    src={playlist.coverUrl}
-                    alt={playlist.name}
-                    className="w-12 h-12 rounded object-cover"
-                  />
+                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center overflow-hidden">
+                    {playlist.coverUrl ? (
+                      <img src={playlist.coverUrl} alt={playlist.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Music className="w-6 h-6 text-muted-foreground" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">{playlist.name}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      Playlist • {playlist.songs.length} músicas
-                    </p>
+                    <p className="text-sm text-muted-foreground truncate">Playlist</p>
                   </div>
                 </div>
               )
             )}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="artists" className="animate-fade-in">
-          <div className={cn(
-            viewMode === 'grid'
-              ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6'
-              : 'flex flex-col gap-2'
-          )}>
-            {mockArtists.map((artist) =>
-              viewMode === 'grid' ? (
-                <ArtistCard key={artist.id} artist={artist} />
-              ) : (
-                <div
-                  key={artist.id}
-                  className="flex items-center gap-4 p-3 bg-card hover:bg-card-hover rounded-lg transition-all cursor-pointer"
-                >
-                  <img
-                    src={artist.imageUrl}
-                    alt={artist.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{artist.name}</p>
-                    <p className="text-sm text-muted-foreground">Artista</p>
-                  </div>
-                </div>
-              )
+            {playlists.length === 0 && (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                Nenhuma playlist criada ainda
+              </div>
             )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="albums" className="animate-fade-in">
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-xl font-semibold text-foreground mb-2">
-              Salve seus álbuns favoritos
-            </p>
-            <p className="text-muted-foreground mb-4">
-              Toque no coração para salvar álbuns que você gosta.
-            </p>
-            <Button variant="default">Explorar álbuns</Button>
           </div>
         </TabsContent>
       </Tabs>
