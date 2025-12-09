@@ -1,9 +1,17 @@
-import React from 'react';
-import { Play, Pause } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, Heart, MoreHorizontal, ListPlus } from 'lucide-react';
 import { Song } from '@/types/music';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 interface SongCardProps {
   song: Song;
@@ -21,10 +29,12 @@ export const SongCard: React.FC<SongCardProps> = ({
   songList,
 }) => {
   const { currentSong, isPlaying, play, pause, playPlaylist } = usePlayer();
+  const { updateSong } = useMusicLibrary();
   const isCurrentSong = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrentSong && isPlaying;
 
-  const handlePlay = () => {
+  const handlePlay = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (isCurrentSong) {
       if (isPlaying) {
         pause();
@@ -36,6 +46,17 @@ export const SongCard: React.FC<SongCardProps> = ({
     } else {
       play(song, [song]);
     }
+  };
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await updateSong(song.id, { liked: !song.liked });
+    toast.success(song.liked ? 'Removido das curtidas' : 'Adicionado às curtidas');
+  };
+
+  const handleAddToPlaylist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast.info('Funcionalidade de playlist em desenvolvimento');
   };
 
   const formatDuration = (seconds: number): string => {
@@ -80,16 +101,46 @@ export const SongCard: React.FC<SongCardProps> = ({
           </p>
           <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 opacity-0 group-hover:opacity-100"
+          onClick={handleLike}
+        >
+          <Heart className={cn('w-4 h-4', song.liked && 'fill-primary text-primary')} />
+        </Button>
         <span className="text-sm text-muted-foreground">
           {formatDuration(song.duration)}
         </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleAddToPlaylist}>
+              <ListPlus className="w-4 h-4 mr-2" />
+              Adicionar à playlist
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLike}>
+              <Heart className={cn('w-4 h-4 mr-2', song.liked && 'fill-primary text-primary')} />
+              {song.liked ? 'Remover das curtidas' : 'Curtir'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   }
 
   return (
     <div className="group relative bg-card hover:bg-card-hover rounded-lg p-4 transition-all duration-300 cursor-pointer">
-      <div className="relative mb-4">
+      <div className="relative mb-4" onClick={handlePlay}>
         <img
           src={song.coverUrl}
           alt={song.title}
@@ -107,9 +158,43 @@ export const SongCard: React.FC<SongCardProps> = ({
             <Play className="w-6 h-6 fill-current ml-0.5" />
           )}
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/60 hover:bg-background/80"
+          onClick={handleLike}
+        >
+          <Heart className={cn('w-5 h-5', song.liked && 'fill-primary text-primary')} />
+        </Button>
       </div>
-      <h3 className="font-semibold text-foreground truncate mb-1">{song.title}</h3>
-      <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-foreground truncate mb-1">{song.title}</h3>
+          <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleAddToPlaylist}>
+              <ListPlus className="w-4 h-4 mr-2" />
+              Adicionar à playlist
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLike}>
+              <Heart className={cn('w-4 h-4 mr-2', song.liked && 'fill-primary text-primary')} />
+              {song.liked ? 'Remover das curtidas' : 'Curtir'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { LyricsModal } from './LyricsModal';
@@ -20,6 +21,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const formatTime = (seconds: number): string => {
   if (isNaN(seconds)) return '0:00';
@@ -44,10 +46,20 @@ export const MusicPlayer: React.FC = () => {
     setVolume,
     toggleShuffle,
     toggleRepeat,
-    toggleLike,
   } = usePlayer();
 
+  const { updateSong, songs } = useMusicLibrary();
   const [showLyrics, setShowLyrics] = useState(false);
+
+  // Get the latest song data from the library
+  const currentSongData = currentSong ? songs.find(s => s.id === currentSong.id) || currentSong : null;
+
+  const handleToggleLike = async () => {
+    if (currentSongData) {
+      await updateSong(currentSongData.id, { liked: !currentSongData.liked });
+      toast.success(currentSongData.liked ? 'Removido das curtidas' : 'Adicionado às curtidas');
+    }
+  };
 
   const handleProgressChange = (value: number[]) => {
     seek(value[0]);
@@ -89,10 +101,10 @@ export const MusicPlayer: React.FC = () => {
               <Button
                 variant="icon"
                 size="iconSm"
-                onClick={() => toggleLike(currentSong.id)}
-                className={cn(currentSong.liked && 'text-primary')}
+                onClick={handleToggleLike}
+                className={cn(currentSongData?.liked && 'text-primary')}
               >
-                <Heart className={cn('w-5 h-5', currentSong.liked && 'fill-current')} />
+                <Heart className={cn('w-5 h-5', currentSongData?.liked && 'fill-current')} />
               </Button>
               <Button variant="player" size="iconSm" onClick={previous}>
                 <SkipBack className="w-5 h-5 fill-current" />
@@ -160,10 +172,10 @@ export const MusicPlayer: React.FC = () => {
             <Button
               variant="icon"
               size="iconSm"
-              onClick={() => toggleLike(currentSong.id)}
-              className={cn(currentSong.liked && 'text-primary')}
+              onClick={handleToggleLike}
+              className={cn(currentSongData?.liked && 'text-primary')}
             >
-              <Heart className={cn('w-4 h-4', currentSong.liked && 'fill-current')} />
+              <Heart className={cn('w-4 h-4', currentSongData?.liked && 'fill-current')} />
             </Button>
           </div>
 
