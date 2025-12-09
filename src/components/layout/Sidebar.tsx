@@ -10,7 +10,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 const navItems = [
   { icon: Home, label: 'Início', path: '/' },
   { icon: Search, label: 'Buscar', path: '/search' },
-  { icon: Library, label: 'Sua Biblioteca', path: '/library' },
 ];
 
 const libraryItems = [

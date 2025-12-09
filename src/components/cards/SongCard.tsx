@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Pause, Heart, MoreHorizontal, ListPlus } from 'lucide-react';
+import { Play, Pause, Heart, MoreHorizontal, ListPlus, ChevronRight } from 'lucide-react';
 import { Song } from '@/types/music';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
@@ -10,8 +10,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { mockPlaylists } from '@/data/mockData';
 
 interface SongCardProps {
   song: Song;
@@ -54,9 +59,9 @@ export const SongCard: React.FC<SongCardProps> = ({
     toast.success(song.liked ? 'Removido das curtidas' : 'Adicionado às curtidas');
   };
 
-  const handleAddToPlaylist = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toast.info('Funcionalidade de playlist em desenvolvimento');
+  const handleAddToPlaylist = (playlistId: string, playlistName: string) => {
+    // TODO: Implementar adição real ao banco quando playlists estiverem no Supabase
+    toast.success(`"${song.title}" adicionada à playlist "${playlistName}"`);
   };
 
   const formatDuration = (seconds: number): string => {
@@ -123,11 +128,28 @@ export const SongCard: React.FC<SongCardProps> = ({
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleAddToPlaylist}>
-              <ListPlus className="w-4 h-4 mr-2" />
-              Adicionar à playlist
-            </DropdownMenuItem>
+          <DropdownMenuContent align="end" className="bg-popover border-border">
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <ListPlus className="w-4 h-4 mr-2" />
+                Adicionar à playlist
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="bg-popover border-border">
+                  {mockPlaylists.map((playlist) => (
+                    <DropdownMenuItem 
+                      key={playlist.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToPlaylist(playlist.id, playlist.name);
+                      }}
+                    >
+                      {playlist.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
             <DropdownMenuItem onClick={handleLike}>
               <Heart className={cn('w-4 h-4 mr-2', song.liked && 'fill-primary text-primary')} />
               {song.liked ? 'Remover das curtidas' : 'Curtir'}
@@ -183,11 +205,28 @@ export const SongCard: React.FC<SongCardProps> = ({
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleAddToPlaylist}>
-              <ListPlus className="w-4 h-4 mr-2" />
-              Adicionar à playlist
-            </DropdownMenuItem>
+          <DropdownMenuContent align="end" className="bg-popover border-border">
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <ListPlus className="w-4 h-4 mr-2" />
+                Adicionar à playlist
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="bg-popover border-border">
+                  {mockPlaylists.map((playlist) => (
+                    <DropdownMenuItem 
+                      key={playlist.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToPlaylist(playlist.id, playlist.name);
+                      }}
+                    >
+                      {playlist.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
             <DropdownMenuItem onClick={handleLike}>
               <Heart className={cn('w-4 h-4 mr-2', song.liked && 'fill-primary text-primary')} />
               {song.liked ? 'Remover das curtidas' : 'Curtir'}
