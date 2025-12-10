@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Song, Playlist } from '@/types/music';
+import { Song } from '@/types/music';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from './AuthContext';
 
 export interface PlaylistData {
   id: string;
@@ -14,6 +15,7 @@ export interface PlaylistData {
 interface MusicLibraryContextType {
   songs: Song[];
   playlists: PlaylistData[];
+  userLikes: Set<string>;
   loading: boolean;
   addSong: (song: Omit<Song, 'id'>) => Promise<void>;
   removeSong: (id: string) => Promise<void>;
@@ -21,10 +23,15 @@ interface MusicLibraryContextType {
   refreshSongs: () => Promise<void>;
   createPlaylist: (name: string, description?: string, coverUrl?: string) => Promise<string | null>;
   deletePlaylist: (id: string) => Promise<void>;
+  updatePlaylist: (id: string, name: string, description?: string) => Promise<void>;
   addSongToPlaylist: (playlistId: string, songId: string) => Promise<void>;
   removeSongFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
   getPlaylistSongs: (playlistId: string) => Promise<Song[]>;
   refreshPlaylists: () => Promise<void>;
+  toggleLike: (songId: string) => Promise<void>;
+  isLiked: (songId: string) => boolean;
+  getLikedSongs: () => Promise<Song[]>;
+  getSignedAudioUrl: (audioUrl: string) => Promise<string>;
   isAdmin: boolean;
   login: (password: string) => boolean;
   logout: () => void;
@@ -44,8 +51,10 @@ export const useMusicLibrary = () => {
 };
 
 export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [songs, setSongs] = useState<Song[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistData[]>([]);
+  const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -74,7 +83,7 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
         duration: song.duration,
         coverUrl: song.cover_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
         audioUrl: song.audio_url,
-        liked: song.liked || false,
+        liked: false, // Will be determined by user_likes
         lyrics: song.lyrics || undefined,
       }));
 
@@ -87,10 +96,16 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const fetchPlaylists = useCallback(async () => {
+    if (!user) {
+      setPlaylists([]);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('playlists')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -110,12 +125,70 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Error:', error);
     }
-  }, []);
+  }, [user]);
+
+  const fetchUserLikes = useCallback(async () => {
+    if (!user) {
+      setUserLikes(new Set());
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_likes')
+        .select('song_id')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching likes:', error);
+        return;
+      }
+
+      setUserLikes(new Set((data || []).map(l => l.song_id)));
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchSongs();
+  }, [fetchSongs]);
+
+  useEffect(() => {
     fetchPlaylists();
-  }, [fetchSongs, fetchPlaylists]);
+    fetchUserLikes();
+  }, [fetchPlaylists, fetchUserLikes]);
+
+  const getSignedAudioUrl = useCallback(async (audioUrl: string): Promise<string> => {
+    // Extract file path from full URL or use as-is
+    let filePath = audioUrl;
+    
+    // If it's a full Supabase URL, extract the path
+    if (audioUrl.includes('/storage/v1/object/')) {
+      const match = audioUrl.match(/\/audio\/(.+)$/);
+      if (match) {
+        filePath = match[1];
+      }
+    } else if (audioUrl.startsWith('audio/')) {
+      filePath = audioUrl.replace('audio/', '');
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-audio-url', {
+        body: { filePath },
+      });
+
+      if (error || !data?.signedUrl) {
+        console.error('Error getting signed URL:', error);
+        return audioUrl; // Fallback to original
+      }
+
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error:', error);
+      return audioUrl;
+    }
+  }, []);
 
   const addSong = useCallback(async (song: Omit<Song, 'id'>) => {
     try {
@@ -129,7 +202,6 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
           cover_url: song.coverUrl,
           audio_url: song.audioUrl,
           lyrics: song.lyrics || null,
-          liked: song.liked || false,
         });
 
       if (error) {
@@ -173,7 +245,6 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (updates.coverUrl !== undefined) dbUpdates.cover_url = updates.coverUrl;
       if (updates.audioUrl !== undefined) dbUpdates.audio_url = updates.audioUrl;
       if (updates.lyrics !== undefined) dbUpdates.lyrics = updates.lyrics;
-      if (updates.liked !== undefined) dbUpdates.liked = updates.liked;
 
       const { error } = await supabase
         .from('songs')
@@ -192,6 +263,85 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [fetchSongs]);
 
+  const toggleLike = useCallback(async (songId: string) => {
+    if (!user) {
+      toast.error('Faça login para curtir músicas');
+      return;
+    }
+
+    const isCurrentlyLiked = userLikes.has(songId);
+
+    try {
+      if (isCurrentlyLiked) {
+        const { error } = await supabase
+          .from('user_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('song_id', songId);
+
+        if (error) throw error;
+
+        setUserLikes(prev => {
+          const next = new Set(prev);
+          next.delete(songId);
+          return next;
+        });
+        toast.success('Removido das curtidas');
+      } else {
+        const { error } = await supabase
+          .from('user_likes')
+          .insert({
+            user_id: user.id,
+            song_id: songId,
+          });
+
+        if (error) throw error;
+
+        setUserLikes(prev => new Set(prev).add(songId));
+        toast.success('Adicionado às curtidas');
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Erro ao atualizar curtida');
+    }
+  }, [user, userLikes]);
+
+  const isLiked = useCallback((songId: string) => {
+    return userLikes.has(songId);
+  }, [userLikes]);
+
+  const getLikedSongs = useCallback(async (): Promise<Song[]> => {
+    if (!user) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('user_likes')
+        .select('song_id, songs(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching liked songs:', error);
+        return [];
+      }
+
+      return (data || []).map((item: any) => ({
+        id: item.songs.id,
+        title: item.songs.title,
+        artist: item.songs.artist,
+        album: item.songs.album,
+        duration: item.songs.duration,
+        coverUrl: item.songs.cover_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
+        audioUrl: item.songs.audio_url,
+        liked: true,
+        lyrics: item.songs.lyrics || undefined,
+      }));
+    } catch (error) {
+      console.error('Error:', error);
+      return [];
+    }
+  }, [user]);
+
   const login = useCallback((password: string) => {
     if (password === ADMIN_PASSWORD) {
       setIsAdmin(true);
@@ -207,6 +357,11 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const createPlaylist = useCallback(async (name: string, description?: string, coverUrl?: string): Promise<string | null> => {
+    if (!user) {
+      toast.error('Faça login para criar playlists');
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from('playlists')
@@ -214,6 +369,7 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
           name,
           description: description || null,
           cover_url: coverUrl || null,
+          user_id: user.id,
         })
         .select('id')
         .single();
@@ -230,7 +386,7 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error('Error:', error);
       return null;
     }
-  }, [fetchPlaylists]);
+  }, [user, fetchPlaylists]);
 
   const deletePlaylist = useCallback(async (id: string) => {
     try {
@@ -246,12 +402,41 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       await fetchPlaylists();
+      toast.success('Playlist excluída');
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, [fetchPlaylists]);
+
+  const updatePlaylist = useCallback(async (id: string, name: string, description?: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlists')
+        .update({
+          name,
+          description: description || null,
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating playlist:', error);
+        toast.error('Erro ao atualizar playlist');
+        return;
+      }
+
+      await fetchPlaylists();
+      toast.success('Playlist atualizada');
     } catch (error) {
       console.error('Error:', error);
     }
   }, [fetchPlaylists]);
 
   const addSongToPlaylist = useCallback(async (playlistId: string, songId: string) => {
+    if (!user) {
+      toast.error('Faça login para adicionar músicas à playlist');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('playlist_songs')
@@ -274,7 +459,7 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Error:', error);
     }
-  }, []);
+  }, [user]);
 
   const removeSongFromPlaylist = useCallback(async (playlistId: string, songId: string) => {
     try {
@@ -317,20 +502,21 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
         duration: item.songs.duration,
         coverUrl: item.songs.cover_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
         audioUrl: item.songs.audio_url,
-        liked: item.songs.liked || false,
+        liked: userLikes.has(item.songs.id),
         lyrics: item.songs.lyrics || undefined,
       }));
     } catch (error) {
       console.error('Error:', error);
       return [];
     }
-  }, []);
+  }, [userLikes]);
 
   return (
     <MusicLibraryContext.Provider
       value={{
         songs,
         playlists,
+        userLikes,
         loading,
         addSong,
         removeSong,
@@ -338,10 +524,15 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
         refreshSongs: fetchSongs,
         createPlaylist,
         deletePlaylist,
+        updatePlaylist,
         addSongToPlaylist,
         removeSongFromPlaylist,
         getPlaylistSongs,
         refreshPlaylists: fetchPlaylists,
+        toggleLike,
+        isLiked,
+        getLikedSongs,
+        getSignedAudioUrl,
         isAdmin,
         login,
         logout,

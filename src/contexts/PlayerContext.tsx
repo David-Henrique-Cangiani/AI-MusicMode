@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { Song, RepeatMode, PlayerState } from '@/types/music';
+import { useMusicLibrary } from './MusicLibraryContext';
 
 interface PlayerContextType extends PlayerState {
   play: (song?: Song, songList?: Song[]) => void;
@@ -13,7 +14,6 @@ interface PlayerContextType extends PlayerState {
   toggleRepeat: () => void;
   addToQueue: (songs: Song[]) => void;
   playPlaylist: (songs: Song[], startIndex?: number) => void;
-  toggleLike: (songId: string) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -27,6 +27,7 @@ export const usePlayer = () => {
 };
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { getSignedAudioUrl } = useMusicLibrary();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -37,6 +38,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [repeat, setRepeat] = useState<RepeatMode>('off');
   const [queue, setQueue] = useState<Song[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
+
+  const nextRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     audioRef.current = new Audio();
@@ -57,7 +60,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         audio.currentTime = 0;
         audio.play();
       } else {
-        next();
+        nextRef.current();
       }
     };
 
@@ -79,6 +82,20 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [volume]);
 
+  const playSong = useCallback(async (song: Song) => {
+    if (!audioRef.current) return;
+    
+    try {
+      // Get signed URL for the audio file
+      const signedUrl = await getSignedAudioUrl(song.audioUrl);
+      audioRef.current.src = signedUrl;
+      audioRef.current.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('Error playing song:', error);
+    }
+  }, [getSignedAudioUrl]);
+
   const play = useCallback((song?: Song, songList?: Song[]) => {
     if (song) {
       setCurrentSong(song);
@@ -92,16 +109,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setQueue([song]);
         setQueueIndex(0);
       }
-      if (audioRef.current) {
-        audioRef.current.src = song.audioUrl;
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
+      playSong(song);
     } else if (audioRef.current && currentSong) {
       audioRef.current.play();
       setIsPlaying(true);
     }
-  }, [currentSong, queue]);
+  }, [currentSong, queue, playSong]);
 
   const pause = useCallback(() => {
     if (audioRef.current) {
@@ -137,8 +150,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     setQueueIndex(nextIndex);
-    play(queue[nextIndex]);
-  }, [queue, queueIndex, shuffle, repeat, play]);
+    setCurrentSong(queue[nextIndex]);
+    playSong(queue[nextIndex]);
+  }, [queue, queueIndex, shuffle, repeat, playSong]);
+
+  // Update ref for next function
+  useEffect(() => {
+    nextRef.current = next;
+  }, [next]);
 
   const previous = useCallback(() => {
     if (audioRef.current && audioRef.current.currentTime > 3) {
@@ -154,8 +173,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     setQueueIndex(prevIndex);
-    play(queue[prevIndex]);
-  }, [queue, queueIndex, repeat, play]);
+    setCurrentSong(queue[prevIndex]);
+    playSong(queue[prevIndex]);
+  }, [queue, queueIndex, repeat, playSong]);
 
   const seek = useCallback((time: number) => {
     if (audioRef.current) {
@@ -187,13 +207,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const playPlaylist = useCallback((songs: Song[], startIndex = 0) => {
     setQueue(songs);
     setQueueIndex(startIndex);
-    play(songs[startIndex]);
-  }, [play]);
-
-  const toggleLike = useCallback((songId: string) => {
-    // This would update the backend in a real app
-    console.log('Toggle like for song:', songId);
-  }, []);
+    setCurrentSong(songs[startIndex]);
+    playSong(songs[startIndex]);
+  }, [playSong]);
 
   return (
     <PlayerContext.Provider
@@ -218,7 +234,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleRepeat,
         addToQueue,
         playPlaylist,
-        toggleLike,
       }}
     >
       {children}

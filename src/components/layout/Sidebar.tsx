@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, Music2, Menu } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, Music2, Menu, LogIn, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -12,14 +13,10 @@ const navItems = [
   { icon: Search, label: 'Buscar', path: '/search' },
 ];
 
-const libraryItems = [
-  { icon: PlusSquare, label: 'Criar Playlist', path: '/create-playlist' },
-  { icon: Heart, label: 'Músicas Curtidas', path: '/liked' },
-];
-
 export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const { playlists } = useMusicLibrary();
+  const { user, profile, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,6 +39,11 @@ export const Sidebar: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    setIsOpen(false);
+  };
+
   const SidebarContent = () => (
     <>
       {/* Logo with triple-click Admin access */}
@@ -55,6 +57,47 @@ export const Sidebar: React.FC = () => {
           </div>
           <span className="text-2xl font-bold text-foreground">AI-MusicMode</span>
         </button>
+      </div>
+
+      {/* User Section */}
+      <div className="px-3 mb-4">
+        {user ? (
+          <div className="bg-card/50 rounded-lg p-3">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {profile?.name || 'Usuário'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={() => {
+              navigate('/auth');
+              setIsOpen(false);
+            }}
+            className="w-full gap-2"
+          >
+            <LogIn className="w-4 h-4" />
+            Entrar / Cadastrar
+          </Button>
+        )}
       </div>
 
       {/* Main Navigation */}
@@ -85,62 +128,93 @@ export const Sidebar: React.FC = () => {
       {/* Divider */}
       <div className="mx-6 my-4 border-t border-border" />
 
-      {/* Library Actions */}
-      <nav className="px-3">
-        <ul className="space-y-1">
-          {libraryItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                onClick={() => setIsOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
-                    isActive
-                      ? 'bg-sidebar-accent text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )
-                }
-              >
-                <item.icon className="w-6 h-6" />
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* Library Actions - Only for logged in users */}
+      {user && (
+        <>
+          <nav className="px-3">
+            <ul className="space-y-1">
+              <li>
+                <NavLink
+                  to="/create-playlist"
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-sidebar-accent text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )
+                  }
+                >
+                  <PlusSquare className="w-6 h-6" />
+                  Criar Playlist
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/liked"
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-sidebar-accent text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )
+                  }
+                >
+                  <Heart className="w-6 h-6" />
+                  Músicas Curtidas
+                </NavLink>
+              </li>
+            </ul>
+          </nav>
 
-      {/* Divider */}
-      <div className="mx-6 my-4 border-t border-border" />
+          {/* Divider */}
+          <div className="mx-6 my-4 border-t border-border" />
 
-      {/* Playlists */}
-      <ScrollArea className="flex-1 px-3">
-        <ul className="space-y-1 pb-4">
-          {playlists.map((playlist) => (
-            <li key={playlist.id}>
-              <NavLink
-                to={`/playlist/${playlist.id}`}
-                onClick={() => setIsOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'block px-4 py-2 rounded-lg text-sm transition-all truncate',
-                    isActive
-                      ? 'bg-sidebar-accent text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )
-                }
-              >
-                {playlist.name}
-              </NavLink>
-            </li>
-          ))}
-          {playlists.length === 0 && (
-            <li className="px-4 py-2 text-sm text-muted-foreground">
-              Nenhuma playlist criada
-            </li>
-          )}
-        </ul>
-      </ScrollArea>
+          {/* Playlists */}
+          <ScrollArea className="flex-1 px-3">
+            <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Suas Playlists
+            </p>
+            <ul className="space-y-1 pb-4">
+              {playlists.map((playlist) => (
+                <li key={playlist.id}>
+                  <NavLink
+                    to={`/playlist/${playlist.id}`}
+                    onClick={() => setIsOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        'block px-4 py-2 rounded-lg text-sm transition-all truncate',
+                        isActive
+                          ? 'bg-sidebar-accent text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )
+                    }
+                  >
+                    {playlist.name}
+                  </NavLink>
+                </li>
+              ))}
+              {playlists.length === 0 && (
+                <li className="px-4 py-2 text-sm text-muted-foreground">
+                  Nenhuma playlist criada
+                </li>
+              )}
+            </ul>
+          </ScrollArea>
+        </>
+      )}
+
+      {/* Message for non-logged users */}
+      {!user && (
+        <div className="px-6 py-4">
+          <p className="text-sm text-muted-foreground text-center">
+            Faça login para criar playlists e curtir músicas
+          </p>
+        </div>
+      )}
     </>
   );
 
