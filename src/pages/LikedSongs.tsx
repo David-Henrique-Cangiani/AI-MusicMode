@@ -1,15 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Play, Pause, Heart, Clock3, Loader2 } from 'lucide-react';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { SongCard } from '@/components/cards/SongCard';
+import { Song } from '@/types/music';
 
 const LikedSongs: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const { currentSong, isPlaying, playPlaylist, pause, play } = usePlayer();
-  const { songs, loading } = useMusicLibrary();
+  const { getLikedSongs } = useMusicLibrary();
+  const [likedSongs, setLikedSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+      return;
+    }
+
+    const loadLikedSongs = async () => {
+      if (user) {
+        setLoading(true);
+        const songs = await getLikedSongs();
+        setLikedSongs(songs);
+        setLoading(false);
+      }
+    };
+
+    loadLikedSongs();
+  }, [user, authLoading, navigate, getLikedSongs]);
+
+  if (loading || authLoading) {
     return (
       <div className="min-h-full flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -17,7 +42,6 @@ const LikedSongs: React.FC = () => {
     );
   }
 
-  const likedSongs = songs.filter((song) => song.liked);
   const isPlayingFromLiked = likedSongs.some((s) => s.id === currentSong?.id);
   const isCurrentlyPlaying = isPlayingFromLiked && isPlaying;
 
@@ -32,6 +56,8 @@ const LikedSongs: React.FC = () => {
   };
 
   const handlePlayClick = () => {
+    if (likedSongs.length === 0) return;
+    
     if (isCurrentlyPlaying) {
       pause();
     } else if (isPlayingFromLiked) {
@@ -50,15 +76,15 @@ const LikedSongs: React.FC = () => {
           background: `linear-gradient(180deg, hsl(250, 60%, 40%) 0%, hsl(var(--background)) 100%)`,
         }}
       >
-        <div className="flex items-end gap-6">
+        <div className="flex flex-col md:flex-row items-center md:items-end gap-6">
           <div className="w-56 h-56 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center shadow-2xl">
             <Heart className="w-24 h-24 text-foreground fill-current" />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 text-center md:text-left">
             <span className="text-sm font-medium text-foreground uppercase">Playlist</span>
-            <h1 className="text-5xl font-bold text-foreground">Músicas Curtidas</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-              <span className="font-semibold text-foreground">SoundWave</span>
+            <h1 className="text-3xl md:text-5xl font-bold text-foreground">Músicas Curtidas</h1>
+            <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-muted-foreground mt-4">
+              <span className="font-semibold text-foreground">AI-MusicMode</span>
               <span>•</span>
               <span>{likedSongs.length} músicas,</span>
               <span>{formatTotalDuration(totalDuration)}</span>
@@ -74,6 +100,7 @@ const LikedSongs: React.FC = () => {
           size="iconXl"
           onClick={handlePlayClick}
           className="shadow-xl"
+          disabled={likedSongs.length === 0}
         >
           {isCurrentlyPlaying ? (
             <Pause className="w-7 h-7 fill-current" />
@@ -83,16 +110,18 @@ const LikedSongs: React.FC = () => {
         </Button>
       </div>
 
-      {/* Track List Header */}
+      {/* Track List */}
       <div className="px-8">
-        <div className="grid grid-cols-[40px_1fr_1fr_80px] gap-4 px-4 py-2 border-b border-border text-sm text-muted-foreground">
-          <span>#</span>
-          <span>Título</span>
-          <span>Álbum</span>
-          <span className="flex justify-end">
-            <Clock3 className="w-4 h-4" />
-          </span>
-        </div>
+        {likedSongs.length > 0 && (
+          <div className="hidden md:grid grid-cols-[40px_1fr_1fr_80px] gap-4 px-4 py-2 border-b border-border text-sm text-muted-foreground">
+            <span>#</span>
+            <span>Título</span>
+            <span>Álbum</span>
+            <span className="flex justify-end">
+              <Clock3 className="w-4 h-4" />
+            </span>
+          </div>
+        )}
 
         {/* Track List */}
         <div className="py-2">
