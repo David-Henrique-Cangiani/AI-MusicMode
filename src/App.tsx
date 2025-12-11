@@ -15,6 +15,7 @@ import LikedSongs from "./pages/LikedSongs";
 import Admin from "./pages/Admin";
 import CreatePlaylist from "./pages/CreatePlaylist";
 import Profile from "./pages/Profile";
+import Help from "./pages/Help";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,7 @@ const App = () => (
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/create-playlist" element={<CreatePlaylist />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/help" element={<Help />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
