@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { Heart, Coffee, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Heart, Coffee, Copy, Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface DonationButtonProps {
   className?: string;
@@ -14,6 +16,33 @@ interface DonationButtonProps {
 
 export const DonationButton: React.FC<DonationButtonProps> = ({ className }) => {
   const [open, setOpen] = useState(false);
+  const [pixKey, setPixKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const loadPixKey = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'pix_key')
+        .maybeSingle();
+      if (data?.value) {
+        setPixKey(data.value);
+      }
+    };
+    loadPixKey();
+  }, []);
+
+  const isImageUrl = pixKey?.startsWith('http') || pixKey?.startsWith('data:');
+
+  const handleCopy = async () => {
+    if (pixKey && !isImageUrl) {
+      await navigator.clipboard.writeText(pixKey);
+      setCopied(true);
+      toast.success('Chave PIX copiada!');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <>
@@ -52,15 +81,47 @@ export const DonationButton: React.FC<DonationButtonProps> = ({ className }) => 
               Qualquer valor é bem-vindo e me ajuda a manter o projeto!
             </p>
 
-            {/* QR Code placeholder - replace with actual QR code image */}
-            <div className="w-48 h-48 bg-card border-2 border-dashed border-primary/30 rounded-lg flex items-center justify-center">
-              <p className="text-xs text-muted-foreground text-center p-4">
-                Envie seu QR code PIX para exibir aqui
-              </p>
-            </div>
+            {pixKey ? (
+              isImageUrl ? (
+                <img 
+                  src={pixKey} 
+                  alt="QR Code PIX" 
+                  className="w-48 h-48 rounded-lg object-contain bg-white p-2"
+                />
+              ) : (
+                <div className="w-full space-y-2">
+                  <div className="p-3 bg-card border border-border rounded-lg text-center break-all font-mono text-sm">
+                    {pixKey}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleCopy}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copiar Chave PIX
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )
+            ) : (
+              <div className="w-48 h-48 bg-card border-2 border-dashed border-primary/30 rounded-lg flex items-center justify-center">
+                <p className="text-xs text-muted-foreground text-center p-4">
+                  Chave PIX não configurada
+                </p>
+              </div>
+            )}
 
             <p className="text-xs text-muted-foreground">
-              Escaneie o QR Code com seu app de banco
+              {isImageUrl ? 'Escaneie o QR Code com seu app de banco' : 'Use a chave acima no seu app de banco'}
             </p>
           </div>
         </DialogContent>
