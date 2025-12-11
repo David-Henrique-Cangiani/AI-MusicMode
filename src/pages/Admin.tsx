@@ -37,6 +37,10 @@ export default function Admin() {
   // PIX key state
   const [pixKey, setPixKey] = useState('');
   const [isSavingPix, setIsSavingPix] = useState(false);
+  const [pixQrFile, setPixQrFile] = useState<File | null>(null);
+  const [pixQrPreview, setPixQrPreview] = useState('');
+  const [isUploadingPix, setIsUploadingPix] = useState(false);
+  const pixQrInputRef = useRef<HTMLInputElement>(null);
 
   // Load PIX key on mount
   useEffect(() => {
@@ -55,13 +59,45 @@ export default function Admin() {
     }
   }, [isAdmin]);
 
+  const handlePixQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPixQrFile(file);
+      const url = URL.createObjectURL(file);
+      setPixQrPreview(url);
+      toast.success('Imagem selecionada!');
+    }
+  };
+
   const handleSavePixKey = async () => {
     setIsSavingPix(true);
     try {
+      let valueToSave = pixKey;
+
+      // If there's a file to upload, upload it first
+      if (pixQrFile) {
+        setIsUploadingPix(true);
+        const uploadedUrl = await uploadToStorage(pixQrFile, 'covers');
+        if (uploadedUrl) {
+          valueToSave = uploadedUrl;
+          setPixKey(uploadedUrl);
+          setPixQrFile(null);
+          if (pixQrPreview) {
+            URL.revokeObjectURL(pixQrPreview);
+            setPixQrPreview('');
+          }
+        } else {
+          toast.error('Erro ao fazer upload da imagem!');
+          setIsSavingPix(false);
+          setIsUploadingPix(false);
+          return;
+        }
+        setIsUploadingPix(false);
+      }
+
       const { error } = await supabase
         .from('app_settings')
-        .update({ value: pixKey })
-        .eq('key', 'pix_key');
+        .upsert({ key: 'pix_key', value: valueToSave }, { onConflict: 'key' });
       
       if (error) throw error;
       toast.success('Chave PIX salva com sucesso!');
@@ -70,6 +106,7 @@ export default function Admin() {
       toast.error('Erro ao salvar chave PIX');
     } finally {
       setIsSavingPix(false);
+      setIsUploadingPix(false);
     }
   };
 
@@ -495,26 +532,64 @@ export default function Admin() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="pixKey">Chave PIX (ou URL do QR Code)</Label>
+            <Label>Upload do QR Code PIX</Label>
+            <input
+              ref={pixQrInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePixQrUpload}
+              className="hidden"
+              disabled={isSavingPix}
+            />
+            <div className="flex gap-2 items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => pixQrInputRef.current?.click()}
+                className="flex-1"
+                disabled={isSavingPix}
+              >
+                <Image className="w-4 h-4 mr-2" />
+                {pixQrFile ? pixQrFile.name : 'Selecionar Imagem QR Code'}
+              </Button>
+              {(pixQrPreview || (pixKey && pixKey.startsWith('http'))) && (
+                <img 
+                  src={pixQrPreview || pixKey} 
+                  alt="QR Code Preview" 
+                  className="w-12 h-12 rounded object-contain bg-white p-1"
+                />
+              )}
+            </div>
+          </div>
+          
+          <div className="relative flex items-center">
+            <div className="flex-grow border-t border-border"></div>
+            <span className="px-3 text-xs text-muted-foreground">ou</span>
+            <div className="flex-grow border-t border-border"></div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="pixKey">Chave PIX (texto)</Label>
             <Input
               id="pixKey"
               value={pixKey}
               onChange={(e) => setPixKey(e.target.value)}
-              placeholder="Cole sua chave PIX ou URL da imagem do QR Code aqui..."
-              disabled={isSavingPix}
+              placeholder="CPF, email, telefone ou chave aleatória..."
+              disabled={isSavingPix || !!pixQrFile}
             />
             <p className="text-xs text-muted-foreground">
-              Você pode colar a chave PIX (CPF, email, telefone, chave aleatória) ou a URL de uma imagem do QR Code.
+              Cole sua chave PIX para exibir como texto copiável.
             </p>
           </div>
-          <Button onClick={handleSavePixKey} disabled={isSavingPix}>
+          
+          <Button onClick={handleSavePixKey} disabled={isSavingPix} className="w-full">
             {isSavingPix ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Salvando...
+                {isUploadingPix ? 'Fazendo upload...' : 'Salvando...'}
               </>
             ) : (
-              'Salvar Chave PIX'
+              'Salvar Configuração PIX'
             )}
           </Button>
         </CardContent>
