@@ -64,10 +64,24 @@ export const Sidebar: React.FC = () => {
       <div className="px-3 mb-4">
         {user ? (
           <div className="bg-card/50 rounded-lg p-3">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
-              </div>
+            <button
+              onClick={() => {
+                navigate('/profile');
+                setIsOpen(false);
+              }}
+              className="flex items-center gap-3 mb-3 w-full text-left hover:bg-background/50 rounded-lg p-2 -m-2 transition-colors"
+            >
+              {profile?.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt={profile.name} 
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
                   {profile?.name || 'Usuário'}
@@ -76,7 +90,7 @@ export const Sidebar: React.FC = () => {
                   {user.email}
                 </p>
               </div>
-            </div>
+            </button>
             <Button
               variant="ghost"
               size="sm"
