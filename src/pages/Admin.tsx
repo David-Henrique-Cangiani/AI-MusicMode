@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Plus, Trash2, Music, LogOut, FileText, Image, FileAudio, Loader2 } from 'lucide-react';
+import { Lock, Plus, Trash2, Music, LogOut, FileText, Image, FileAudio, Loader2, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Admin() {
@@ -33,6 +33,45 @@ export default function Admin() {
   // Lyrics edit state
   const [editingLyricsId, setEditingLyricsId] = useState<string | null>(null);
   const [editingLyrics, setEditingLyrics] = useState('');
+
+  // PIX key state
+  const [pixKey, setPixKey] = useState('');
+  const [isSavingPix, setIsSavingPix] = useState(false);
+
+  // Load PIX key on mount
+  useEffect(() => {
+    const loadPixKey = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'pix_key')
+        .maybeSingle();
+      if (data?.value) {
+        setPixKey(data.value);
+      }
+    };
+    if (isAdmin) {
+      loadPixKey();
+    }
+  }, [isAdmin]);
+
+  const handleSavePixKey = async () => {
+    setIsSavingPix(true);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ value: pixKey })
+        .eq('key', 'pix_key');
+      
+      if (error) throw error;
+      toast.success('Chave PIX salva com sucesso!');
+    } catch (error) {
+      console.error('Error saving PIX key:', error);
+      toast.error('Erro ao salvar chave PIX');
+    } finally {
+      setIsSavingPix(false);
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -445,6 +484,41 @@ export default function Admin() {
           </Card>
         </div>
       )}
+
+      {/* PIX Configuration */}
+      <Card className="bg-card/50 backdrop-blur-sm border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="w-5 h-5" />
+            Configurar Doação PIX
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="pixKey">Chave PIX (ou URL do QR Code)</Label>
+            <Input
+              id="pixKey"
+              value={pixKey}
+              onChange={(e) => setPixKey(e.target.value)}
+              placeholder="Cole sua chave PIX ou URL da imagem do QR Code aqui..."
+              disabled={isSavingPix}
+            />
+            <p className="text-xs text-muted-foreground">
+              Você pode colar a chave PIX (CPF, email, telefone, chave aleatória) ou a URL de uma imagem do QR Code.
+            </p>
+          </div>
+          <Button onClick={handleSavePixKey} disabled={isSavingPix}>
+            {isSavingPix ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              'Salvar Chave PIX'
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Instructions */}
       <Card className="bg-primary/10 border-primary/20">
