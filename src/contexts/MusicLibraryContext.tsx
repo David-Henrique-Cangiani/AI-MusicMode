@@ -33,14 +33,12 @@ interface MusicLibraryContextType {
   getLikedSongs: () => Promise<Song[]>;
   getSignedAudioUrl: (audioUrl: string) => Promise<string>;
   isAdmin: boolean;
-  login: (password: string) => boolean;
-  logout: () => void;
+  checkAdminStatus: () => Promise<boolean>;
 }
 
 const MusicLibraryContext = createContext<MusicLibraryContextType | null>(null);
 
-const ADMIN_PASSWORD = 'admin123';
-const ADMIN_KEY = 'soundwave_admin';
+const ADMIN_EMAIL = 'david.h.cangiani@gmail.com';
 
 export const useMusicLibrary = () => {
   const context = useContext(MusicLibraryContext);
@@ -56,10 +54,21 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [playlists, setPlaylists] = useState<PlaylistData[]>([]);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem(ADMIN_KEY) === 'true';
-  });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const checkAdminStatus = useCallback(async (): Promise<boolean> => {
+    if (!user) {
+      setIsAdmin(false);
+      return false;
+    }
+    const isAdminUser = user.email === ADMIN_EMAIL;
+    setIsAdmin(isAdminUser);
+    return isAdminUser;
+  }, [user]);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [checkAdminStatus]);
 
   const fetchSongs = useCallback(async () => {
     try {
@@ -342,19 +351,6 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user]);
 
-  const login = useCallback((password: string) => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      localStorage.setItem(ADMIN_KEY, 'true');
-      return true;
-    }
-    return false;
-  }, []);
-
-  const logout = useCallback(() => {
-    setIsAdmin(false);
-    localStorage.removeItem(ADMIN_KEY);
-  }, []);
 
   const createPlaylist = useCallback(async (name: string, description?: string, coverUrl?: string): Promise<string | null> => {
     if (!user) {
@@ -534,8 +530,7 @@ export const MusicLibraryProvider: React.FC<{ children: React.ReactNode }> = ({ 
         getLikedSongs,
         getSignedAudioUrl,
         isAdmin,
-        login,
-        logout,
+        checkAdminStatus,
       }}
     >
       {children}

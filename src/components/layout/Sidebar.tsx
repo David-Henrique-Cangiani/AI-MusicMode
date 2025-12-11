@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, Music2, Menu, LogIn, LogOut, User } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, Music2, Menu, LogIn, LogOut, User, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicLibrary } from '@/contexts/MusicLibraryContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { DonationButton } from '@/components/DonationButton';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const navItems = [
   { icon: Home, label: 'Início', path: '/' },
@@ -64,42 +65,59 @@ export const Sidebar: React.FC = () => {
       <div className="px-3 mb-4">
         {user ? (
           <div className="bg-card/50 rounded-lg p-3">
-            <button
-              onClick={() => {
-                navigate('/profile');
-                setIsOpen(false);
-              }}
-              className="flex items-center gap-3 mb-3 w-full text-left hover:bg-background/50 rounded-lg p-2 -m-2 transition-colors"
-            >
-              {profile?.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
-                  alt={profile.name} 
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => {
+                  navigate('/profile');
+                  setIsOpen(false);
+                }}
+                className="flex items-center gap-3 flex-1 text-left hover:bg-background/50 rounded-lg p-2 -m-2 transition-colors"
+              >
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt={profile.name} 
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {profile?.name || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user.email}
+                  </p>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {profile?.name || 'Usuário'}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {user.email}
-                </p>
-              </div>
-            </button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="w-4 h-4" />
-              Sair
-            </Button>
+              </button>
+              <NotificationBell />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigate('/help');
+                  setIsOpen(false);
+                }}
+                className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Ajuda
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </Button>
+            </div>
           </div>
         ) : (
           <Button
