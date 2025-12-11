@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { DonationButton } from '@/components/DonationButton';
 
 const navItems = [
   { icon: Home, label: 'Início', path: '/' },
@@ -215,6 +216,11 @@ export const Sidebar: React.FC = () => {
           </p>
         </div>
       )}
+
+      {/* Donation Button */}
+      <div className="mt-auto px-3 pb-4">
+        <DonationButton />
+      </div>
     </>
   );
 
