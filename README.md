@@ -1,73 +1,96 @@
-# Welcome to your Lovable project
+Objetivo do Projeto
 
-## Project info
+Demonstrar, na prática, o desenvolvimento de um sistema web completo, envolvendo frontend moderno, backend estruturado, autenticação segura, regras de negócio e persistência de dados, simulando um cenário real de aplicação em produção.
 
-**URL**: https://lovable.dev/projects/118c8ec6-8201-4c97-8616-daf111aaa6a2
+⚙️ Funcionalidades
+👤 Visitante
 
-## How can I edit this code?
+Ouvir músicas gratuitamente
 
-There are several ways of editing your application.
+Navegar pela plataforma sem autenticação
 
-**Use Lovable**
+👥 Usuário autenticado
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/118c8ec6-8201-4c97-8616-daf111aaa6a2) and start prompting.
+Criar conta e realizar login
 
-Changes made via Lovable will be committed automatically to this repo.
+Senhas armazenadas de forma segura (hash criptografado)
 
-**Use your preferred IDE**
+Criar e gerenciar playlists
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Acesso a funcionalidades exclusivas para usuários logados
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+🛠️ Administrador
 
-Follow these steps:
+Cadastro e gerenciamento de músicas
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Controle total do conteúdo disponível na plataforma
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+🔐 Autenticação e Segurança
 
-# Step 3: Install the necessary dependencies.
-npm i
+Sistema de login com hash de senha
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Controle de acesso baseado em perfil (admin / usuário)
+
+Rotas protegidas no backend
+
+Separação clara entre permissões de administrador e usuários comuns
+
+🧱 Arquitetura
+
+Frontend: Aplicação web desenvolvida com Next.js
+
+Backend: API desenvolvida em Node.js
+
+Comunicação: API REST
+
+Persistência: Banco de dados para usuários, músicas e playlists
+
+Deploy: Frontend publicado no Vercel
+
+🛠️ Tecnologias Utilizadas
+
+JavaScript / TypeScript
+
+Next.js
+
+Node.js
+
+React
+
+APIs REST
+
+Git & GitHub
+
+Vercel
+
+Criptografia de senhas (hash)
+
+▶️ Como rodar o projeto localmente
+# Clone o repositório
+git clone https://github.com/seu-usuario/seu-repositorio.git
+
+# Instale as dependências
+npm install
+
+# Execute o projeto
 npm run dev
-```
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+⚠️ É necessário configurar as variáveis de ambiente para conexão com o backend e banco de dados.
 
-**Use GitHub Codespaces**
+📚 Aprendizados
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Implementação de autenticação segura
 
-## What technologies are used for this project?
+Modelagem de regras de negócio
 
-This project is built with:
+Integração frontend e backend
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Organização de projeto Full Stack
 
-## How can I deploy this project?
+Deploy de aplicações web
 
-Simply open [Lovable](https://lovable.dev/projects/118c8ec6-8201-4c97-8616-daf111aaa6a2) and click on Share -> Publish.
+👨‍💻 Autor
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+David H. Cangiani
+Desenvolvedor Full Stack Júnior focado em Next.js e Node.js
