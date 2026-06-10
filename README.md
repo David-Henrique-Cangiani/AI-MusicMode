@@ -1,96 +1,40 @@
-Objetivo do Projeto
+# IA Mode Music
 
-Demonstrar, na prática, o desenvolvimento de um sistema web completo, envolvendo frontend moderno, backend estruturado, autenticação segura, regras de negócio e persistência de dados, simulando um cenário real de aplicação em produção.
+Aplicação web de música com **Inteligência Artificial**, cadastro e login seguro. Construída em **Next.js**, do back-end ao deploy, com autenticação e proteção de dados (hash de senhas).
 
-⚙️ Funcionalidades
-👤 Visitante
+🔗 **No ar:** [ia-mode-music.vercel.app](https://ia-mode-music.vercel.app/)
 
-Ouvir músicas gratuitamente
+## Sobre o projeto
 
-Navegar pela plataforma sem autenticação
+Meu projeto mais completo de IA aplicada a produto: uma experiência de música com recursos de IA, sistema de contas com autenticação e boas práticas de segurança.
 
-👥 Usuário autenticado
+## Funcionalidades
 
-Criar conta e realizar login
+- Experiência de música com Inteligência Artificial
+- Cadastro e login de usuários
+- Autenticação e segurança (hash de senhas)
+- Aplicação full stack em Next.js
 
-Senhas armazenadas de forma segura (hash criptografado)
+## Tecnologias
 
-Criar e gerenciar playlists
+- Next.js / React
+- TypeScript
+- Autenticação + hash de senhas
+- Deploy contínuo na Vercel
 
-Acesso a funcionalidades exclusivas para usuários logados
+## Como rodar localmente
 
-🛠️ Administrador
+```bash
+git clone https://github.com/David-Henrique-Cangiani/AI-MusicMode.git
+cd AI-MusicMode
 
-Cadastro e gerenciamento de músicas
-
-Controle total do conteúdo disponível na plataforma
-
-🔐 Autenticação e Segurança
-
-Sistema de login com hash de senha
-
-Controle de acesso baseado em perfil (admin / usuário)
-
-Rotas protegidas no backend
-
-Separação clara entre permissões de administrador e usuários comuns
-
-🧱 Arquitetura
-
-Frontend: Aplicação web desenvolvida com Next.js
-
-Backend: API desenvolvida em Node.js
-
-Comunicação: API REST
-
-Persistência: Banco de dados para usuários, músicas e playlists
-
-Deploy: Frontend publicado no Vercel
-
-🛠️ Tecnologias Utilizadas
-
-JavaScript / TypeScript
-
-Next.js
-
-Node.js
-
-React
-
-APIs REST
-
-Git & GitHub
-
-Vercel
-
-Criptografia de senhas (hash)
-
-▶️ Como rodar o projeto localmente
-# Clone o repositório
-git clone https://github.com/seu-usuario/seu-repositorio.git
-
-# Instale as dependências
 npm install
-
-# Execute o projeto
 npm run dev
+```
 
+> Configure as variáveis de ambiente (`.env`) necessárias — chaves de API e segredos **nunca** devem ser versionados.
 
-⚠️ É necessário configurar as variáveis de ambiente para conexão com o backend e banco de dados.
+## Autor
 
-📚 Aprendizados
-
-Implementação de autenticação segura
-
-Modelagem de regras de negócio
-
-Integração frontend e backend
-
-Organização de projeto Full Stack
-
-Deploy de aplicações web
-
-👨‍💻 Autor
-
-David H. Cangiani
-Desenvolvedor Full Stack Júnior focado em Next.js e Node.js
+**David Henrique Cangiani** — AI Product Builder
+[LinkedIn](https://www.linkedin.com/in/david-cangiani-695766212) · [GitHub](https://github.com/David-Henrique-Cangiani)
